@@ -3,6 +3,9 @@ import xmltodict
 import requests
 import os
 import re
+import sys
+
+nb_token = os.environ.get('NB_TOKEN')
 
 def youtube_links(input):
 	''' Find youtube links in any wordpress blogpost'''
@@ -13,7 +16,13 @@ def youtube_links(input):
 		url = url[0]
 		url = url.replace('src=', '')
 		url = url.replace('"', '')
-		return url
+		# The URL format for youtube videos changed halfway through the life of the blog, this tests for the format and returns the correct URL
+		if url.startswith("//"):
+			# If it's the new broken format append http, otherwise just return the URL
+			url = "http:" + url
+			return url
+		else:
+			return url
 
 def read_xml(input_xml):
 	''' Reads an xml file and turns it into a dictionary '''
@@ -22,7 +31,7 @@ def read_xml(input_xml):
 	doc = xmltodict.parse(doc_xml)
 	return doc
 
-def wp2nb(input_xml):
+def convert_wp2nb(input_xml):
 	''' Extracts the relevant items from wordpress posts and converts it into a nationbuilder friendly
 	format. If there are any youtube links it appends them to the end of the post '''
 	content = input_xml['content:encoded']
@@ -40,16 +49,16 @@ def wp2nb(input_xml):
 
 def nb_upload(input_json):
 	''' Uploads blog posts to the nationbuilder URL '''
-	# Create blog post for each entry
 	url = 'https://andrewleigh.nationbuilder.com/api/v1/sites/andrewleigh/pages/blogs/1/posts'
 	payload = input_json
 	headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
-	parameters = {'access_token': os.environ.get('TOKEN')}
+	parameters = {'access_token': nb_token}
 	r=requests.post(url, data=payload, headers=headers, params=parameters)
 	response = r.status_code
 	print response
 
 def delete_post(id):
+	''' Delete a nationbuilder post '''
 	url = 'https://andrewleigh.nationbuilder.com/api/v1/sites/andrewleigh/pages/blogs/1/posts/%s' % id
 	headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
 	parameters = {'access_token': os.environ.get('TOKEN')}
@@ -58,9 +67,10 @@ def delete_post(id):
 	print response
 
 if __name__ == "__main__":
-	doc = read_xml('INPUT_FILE.xml')
+	input_file = sys.argv[0]
+	doc = read_xml(input_file)
 	for i in doc['rss']['channel']['item']:
-		json_output = wp2nb(i)
+		json_output = convert_wp2nb(i)
 		nb_upload(json_output)
 
 	
