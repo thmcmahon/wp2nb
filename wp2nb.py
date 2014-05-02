@@ -67,7 +67,8 @@ def delete_post(id):
 	print response
 
 if __name__ == "__main__":
-	input_file = sys.argv[0]
+	# This needs to be replaced by using sysargv
+	input_file = 'INSERT FILE HERE'
 	doc = read_xml(input_file)
 	for i in doc['rss']['channel']['item']:
 		json_output = convert_wp2nb(i)
