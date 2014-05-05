@@ -61,14 +61,23 @@ def delete_post(id):
 	''' Delete a nationbuilder post '''
 	url = 'https://andrewleigh.nationbuilder.com/api/v1/sites/andrewleigh/pages/blogs/1/posts/%s' % id
 	headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
-	parameters = {'access_token': os.environ.get('TOKEN')}
+	parameters = {'access_token': nb_token}
 	r=requests.delete(url, headers=headers, params=parameters)
 	response = r.status_code
 	print response
 
+def get_posts():
+	''' Get blog post IDs '''
+	url = 'https://andrewleigh.nationbuilder.com/api/v1/sites/andrewleigh/pages/blogs/1/posts/'
+	headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
+	parameters = {'access_token': nb_token, 'per_page': '100'}
+	r=requests.get(url, headers=headers, params=parameters)
+	response = json.loads(r.content)
+	return response
+
 if __name__ == "__main__":
 	# This needs to be replaced by using sysargv
-	input_file = 'INSERT FILE HERE'
+	input_file = sys.argv[1]
 	doc = read_xml(input_file)
 	for i in doc['rss']['channel']['item']:
 		json_output = convert_wp2nb(i)
