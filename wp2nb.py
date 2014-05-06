@@ -4,6 +4,9 @@ import requests
 import os
 import re
 import sys
+import base64
+from urlparse import urlparse
+from os.path import splitext, basename
 
 nb_token = os.environ.get('NB_TOKEN')
 
@@ -74,6 +77,27 @@ def get_posts():
 	r=requests.get(url, headers=headers, params=parameters)
 	response = json.loads(r.content)
 	return response
+
+def upload_image(page_slug, image_url):
+	''' Upload an image attachment to a blog post '''
+	url = 'https://andrewleigh.nationbuilder.com/api/v1/sites/andrewleigh/pages/%s/attachments' % page_slug
+	image = prepare_image(image_url)
+	headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
+	parameters = {'access_token': nb_token}
+	r=requests.post(url, headers=headers, params=parameters, data=json.dumps(image))
+	return r
+
+def prepare_image(url):
+	''' Downloads an image, encodes it to base64 for the NB api and sets required parameters then returns a dictionary '''
+	# Download the image then enode it as bas364 per the NB api requirements
+	image = requests.get(url)
+	image_base64 = base64.b64encode(image.content)
+	# This splits the filename from the URL. See http://stackoverflow.com/questions/10552188/python-split-url-to-find-image-name-and-extension
+	image_disassembled = urlparse(image.url)
+	filename, file_ext = splitext(basename(image_disassembled.path))
+	image_filename = filename[1:] + file_ext
+	content = {'attachment': {'filename': image_filename, 'content_type': 'image/jpeg', 'updated_at': '2013-06-06T10:15:02-07:00', 'content': image_base64}}
+	return content
 
 if __name__ == "__main__":
 	# This needs to be replaced by using sysargv
