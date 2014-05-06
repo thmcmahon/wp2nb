@@ -9,9 +9,11 @@ from urlparse import urlparse
 from os.path import splitext, basename
 
 nb_token = os.environ.get('NB_TOKEN')
+site_slug = os.environ.get('SITE_SLUG')
+api_url = "https://" + site_slug + ".nationbuilder.com/api/v1/sites/" + site_slug
 
 def youtube_links(input):
-	''' Find youtube links in any wordpress blogpost'''
+	''' Find youtube links in any wordpress blogpost '''
 	# This is some horrible regex, see
 	# http://stackoverflow.com/questions/839994/extracting-a-url-in-python
 	url = re.findall(r'(src=\S+)', input)
@@ -52,7 +54,7 @@ def convert_wp2nb(input_xml):
 
 def nb_upload(input_json):
 	''' Uploads blog posts to the nationbuilder URL '''
-	url = 'https://andrewleigh.nationbuilder.com/api/v1/sites/andrewleigh/pages/blogs/1/posts'
+	url = api_url + '/pages/blogs/1/posts'
 	payload = input_json
 	headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
 	parameters = {'access_token': nb_token}
@@ -62,7 +64,7 @@ def nb_upload(input_json):
 
 def delete_post(id):
 	''' Delete a nationbuilder post '''
-	url = 'https://andrewleigh.nationbuilder.com/api/v1/sites/andrewleigh/pages/blogs/1/posts/%s' % id
+	url = api_url + '/pages/blogs/1/posts/%s' % id
 	headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
 	parameters = {'access_token': nb_token}
 	r=requests.delete(url, headers=headers, params=parameters)
@@ -71,7 +73,7 @@ def delete_post(id):
 
 def get_posts():
 	''' Get blog post IDs '''
-	url = 'https://andrewleigh.nationbuilder.com/api/v1/sites/andrewleigh/pages/blogs/1/posts/'
+	url = api_url + '/pages/blogs/1/posts/'
 	headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
 	parameters = {'access_token': nb_token, 'per_page': '100'}
 	r=requests.get(url, headers=headers, params=parameters)
@@ -80,7 +82,7 @@ def get_posts():
 
 def upload_image(page_slug, image_url):
 	''' Upload an image attachment to a blog post '''
-	url = 'https://andrewleigh.nationbuilder.com/api/v1/sites/andrewleigh/pages/%s/attachments' % page_slug
+	url = api_url + '/pages/%s/attachments' % page_slug
 	image = prepare_image(image_url)
 	headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
 	parameters = {'access_token': nb_token}
