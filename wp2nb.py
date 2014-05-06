@@ -7,6 +7,7 @@ import sys
 import base64
 from urlparse import urlparse
 from os.path import splitext, basename
+from BeautifulSoup import BeautifulSoup
 
 nb_token = os.environ.get('NB_TOKEN')
 site_slug = os.environ.get('SITE_SLUG')
@@ -36,23 +37,31 @@ def read_xml(input_xml):
 	doc = xmltodict.parse(doc_xml)
 	return doc
 
+def image_links(input):
+	''' Finds all the image links in a string '''
+	list_of_images = []
+	soup = BeautifulSoup(input)
+	for i in soup.findAll('img'):
+		list_of_images.append(i.get("src"))
+	return list_of_images
+
 def convert_wp2nb(input_xml):
 	''' Extracts the relevant items from wordpress posts and converts it into a nationbuilder friendly
 	format. If there are any youtube links it appends them to the end of the post '''
 	content = input_xml['content:encoded']
 	if content is not None:
 		content = content.replace('\n', '<br>')
+		image_urls = image_links(content)
 		if content.find('youtube') > 0:
 			youtube_url = youtube_links(content)
 			if youtube_url is not None:
 				content = content + youtube_url
-		output_dict = {'blog_post': {'name': input_xml['title'], 'slug': input_xml['wp:post_id'], 'status': 'published', 'content_before_flip': content, 'published_at': input_xml['pubDate'], 'author_id': '2'}}
+		output_dict = {'post': {'blog_post': {'name': input_xml['title'], 'slug': input_xml['wp:post_id'], 'status': 'published', 'content_before_flip': content, 'published_at': input_xml['pubDate'], 'author_id': '2'}}, 'images': image_urls}
+		return output_dict
 	else:
-		output_dict = {'blog_post': {'name': input_xml['title'], 'slug': input_xml['wp:post_id'], 'status': 'published', 'content_before_flip': input_xml['content:encoded'], 'published_at': input_xml['pubDate'], 'author_id': '2'}}
-	json_output = json.dumps(output_dict)
-	return json_output
-
-def nb_upload(input_json):
+		pass
+	
+def upload_blog_post(input_json):
 	''' Uploads blog posts to the nationbuilder URL '''
 	url = api_url + '/pages/blogs/1/posts'
 	payload = input_json
@@ -101,12 +110,25 @@ def prepare_image(url):
 	content = {'attachment': {'filename': image_filename, 'content_type': 'image/jpeg', 'updated_at': '2013-06-06T10:15:02-07:00', 'content': image_base64}}
 	return content
 
+def delete_all_posts():
+	''' Removes all posts '''
+	posts = get_posts()
+	post_ids = []
+	for i in posts['results']:
+		post_ids.append(i['id'])
+	for i in post_ids:
+		delete_post(i)
+
 if __name__ == "__main__":
-	# This needs to be replaced by using sysargv
+	''' Convert an xml file then upload it to nationbuilder '''
 	input_file = sys.argv[1]
 	doc = read_xml(input_file)
+	# Iterate through the xml entries, if there is any content, then upload to the blog
 	for i in doc['rss']['channel']['item']:
-		json_output = convert_wp2nb(i)
-		nb_upload(json_output)
-
-	
+		if i['content:encoded']:
+			output_dict = convert_wp2nb(i)
+			upload_blog_post(json.dumps(output_dict['post']))
+			# If the post contains any images, theng go through and upload them to the relevant page 
+			if output_dict['images']:
+				for i in output_dict['images']:
+					upload_image(output_dict['post']['blog_post']['slug'], i)
