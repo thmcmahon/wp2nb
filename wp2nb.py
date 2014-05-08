@@ -37,12 +37,22 @@ def read_xml(input_xml):
 	doc = xmltodict.parse(doc_xml)
 	return doc
 
-def image_links(input):
+def remove_img_tags(input):
+	''' Removes img tags from text '''
+	soup = BeautifulSoup(input)
+	[s.extract() for s in soup('img')]
+	return str(soup)
+
+def image_links(input, tags=False):
 	''' Finds all the image links in a string '''
 	list_of_images = []
 	soup = BeautifulSoup(input)
-	for i in soup.findAll('img'):
-		list_of_images.append(i.get("src"))
+	if tags:
+		for i in soup.findAll('img'):
+			list_of_images.append(i)
+	else:
+		for i in soup.findAll('img'):
+			list_of_images.append(i.get("src"))
 	return list_of_images
 
 def convert_wp2nb(input_xml):
@@ -51,7 +61,10 @@ def convert_wp2nb(input_xml):
 	content = input_xml['content:encoded']
 	if content is not None:
 		content = content.replace('\n', '<br>')
+		# extract image URLs to be uploaded
 		image_urls = image_links(content)
+		# remove img tags as they will be brought in using liquid tags
+		content = remove_img_tags(content)
 		if content.find('youtube') > 0:
 			youtube_url = youtube_links(content)
 			if youtube_url is not None:
