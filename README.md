@@ -43,3 +43,11 @@ xmllint input_file.xml
 ```bash
 python wp2nb.py input_file.xml
 ```
+
+6. Update your nationbuilder theme to include the attached images in your blog posts. You'll need a small snippet of liquid template code in your blog post's template. See: http://nationbuilder.com/liquid_template_examples.
+
+```html
+{% for attachment in page.attachments limit:10  %}
+<img src="{{ attachment.url }}" />
+{% endfor %}
+```
